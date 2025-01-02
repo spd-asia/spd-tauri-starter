@@ -1,0 +1,81 @@
+name: 'build-android-apk'
+
+on:
+  push:
+    branches:
+      - main # or your main development branch
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed for creating releases
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          ndk: '27.0.11902837'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'pnpm'
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+          cache: true
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build app bundle (Debug or Release)
+        run: pnpm tauri android build # Omit -v for less verbose output. Add --release for release builds.
+
+      - name: Get Node project version
+        id: package-version
+        uses: martinbeentjes/npm-get-version-action@v1.3.1
+
+      - name: Rename APK file
+        run: |
+          mkdir -p build/outputs/apk/
+          cp ./src-tauri/gen/android/app/build/outputs/apk/debug/app-debug.apk build/outputs/apk/app-${{ steps.package-version.outputs.current-version}}-debug.apk
+          # For Release builds use this:
+          # cp ./src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release-unsigned.apk build/outputs/apk/app-${{ steps.package-version.outputs.current-version}}.apk
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.package-version.outputs.current-version }}
+          release_name: App v${{ steps.package-version.outputs.current-version }}
+          draft: false
+          prerelease: false
+
+      - name: Upload APK as Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build/outputs/apk/app-${{ steps.package-version.outputs.current-version}}-debug.apk # Update this if using release build
+          asset_name: app-${{ steps.package-version.outputs.current-version}}-debug.apk # Update this if using release build
+          asset_content_type: application/vnd.android.package-archive
