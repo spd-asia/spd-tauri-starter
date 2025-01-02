@@ -29,6 +29,15 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install NDK
+        run: sdkmanager "ndk;27.2.12479018" # Update this to the latest NDK version
+
+      - name: Set up NDK
+        run: |
+          NDK_PATH=$(ls -d $ANDROID_SDK_ROOT/ndk/* | head -n 1)
+          echo "NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
+          echo "NDK_HOME set to $NDK_PATH"
+
       - uses: pnpm/action-setup@v4
         with:
           version: 8
