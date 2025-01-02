@@ -47,6 +47,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Tauri Android Init
+        run: pnpm tauri android init
+
       - name: Build app bundle (Debug or Release)
         run: pnpm tauri android build # Omit -v for less verbose output. Add --release for release builds.
 
