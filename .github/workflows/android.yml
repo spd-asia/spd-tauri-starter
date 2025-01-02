@@ -33,10 +33,12 @@ jobs:
         run: sdkmanager "ndk;27.2.12479018" # Update this to the latest NDK version
 
       - name: Set up NDK
+        run: echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk/27.2.12479018" >> $GITHUB_ENV # Update this to the latest NDK version
+
+      - name: Verify NDK setup
         run: |
-          NDK_PATH=$(ls -d $ANDROID_SDK_ROOT/ndk/* | head -n 1)
-          echo "NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
-          echo "NDK_HOME set to $NDK_PATH"
+          echo "NDK_HOME: $NDK_HOME"
+          ls -la $NDK_HOME
 
       - uses: pnpm/action-setup@v4
         with:
@@ -69,9 +71,7 @@ jobs:
       - name: Rename APK file
         run: |
           mkdir -p build/outputs/apk/
-          cp ./src-tauri/gen/android/app/build/outputs/apk/debug/app-debug.apk build/outputs/apk/app-${{ steps.package-version.outputs.current-version}}-debug.apk
-          # For Release builds use this:
-          # cp ./src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release-unsigned.apk build/outputs/apk/app-${{ steps.package-version.outputs.current-version}}.apk
+          cp ./src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release-unsigned.apk ./build/outputs/apk/spd-tauri-${{ steps.package-version.outputs.current-version}}.apk
 
       - name: Create Release
         uses: actions/create-release@v1
@@ -80,7 +80,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ steps.package-version.outputs.current-version }}
-          release_name: App v${{ steps.package-version.outputs.current-version }}
+          release_name: SPD Tauri v${{ steps.package-version.outputs.current-version }}
           draft: false
           prerelease: false
 
@@ -90,6 +90,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./build/outputs/apk/app-${{ steps.package-version.outputs.current-version}}-debug.apk # Update this if using release build
-          asset_name: app-${{ steps.package-version.outputs.current-version}}-debug.apk # Update this if using release build
+          asset_path: ./build/outputs/apk/spd-tauri-${{ steps.package-version.outputs.current-version}}.apk # Update this if using release build
+          asset_name: spd-tauri-${{ steps.package-version.outputs.current-version}}.apk # Update this if using release build
           asset_content_type: application/vnd.android.package-archive
