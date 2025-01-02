@@ -7,15 +7,6 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      build_type:
-        description: 'Build type (debug/release)'
-        required: true
-        default: 'debug'
-        type: choice
-        options:
-          - debug
-          - release
 
 env:
   CARGO_TERM_COLOR: always
@@ -24,15 +15,8 @@ env:
 jobs:
   build-android:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false  # Continue with other targets if one fails
-      matrix:
-        target: [aarch64-linux-android, armv7-linux-androideabi, i686-linux-android, x86_64-linux-android]
-
     permissions:
       contents: write
-      packages: write
-
     steps:
       - uses: actions/checkout@v4
 
@@ -58,7 +42,7 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
 
       - name: Install dependencies
         run: pnpm install
