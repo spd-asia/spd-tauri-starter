@@ -1,34 +1,53 @@
-name: 'build-android-apk'
+name: 'Build Android APK'
 
 on:
   push:
-    branches:
-      - main # or your main development branch
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
   workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type (debug/release)'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
 
 jobs:
   build-android:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false  # Continue with other targets if one fails
+      matrix:
+        target: [aarch64-linux-android, armv7-linux-androideabi, i686-linux-android, x86_64-linux-android]
+
     permissions:
-      contents: write # Needed for creating releases
+      contents: write
+      packages: write
+
     steps:
       - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 8
 
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
           java-version: '17'
-          cache: 'maven'
+          distribution: 'temurin'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+
+      - uses: pnpm/action-setup@v4
         with:
-          ndk: '27.0.11902837'
+          version: 8
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -39,8 +58,7 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
-          cache: true
+          targets: ${{ matrix.target }}
 
       - name: Install dependencies
         run: pnpm install
